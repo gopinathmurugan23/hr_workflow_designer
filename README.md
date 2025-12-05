@@ -1,70 +1,184 @@
-# Getting Started with Create React App
+# HR Workflow Designer – Frontend Prototype
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A mini HR workflow designer built using **React + React Flow**, featuring drag-and-drop workflow creation, dynamic configuration forms, workflow validation, and a mock workflow simulation engine.
 
-## Available Scripts
+## How to Run
 
-In the project directory, you can run:
+```bash
+git clone <your-repo-url>
+cd hr-workflow-designer
+npm install
+npm start
+```
 
-### `npm start`
+Runs at: **http://localhost:3000**
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+# Architecture
 
-### `npm test`
+```
+src/
+  api/
+    actions.js           # Automated action definitions (mock API)
+    simulate.js          # Mock /simulate backend
+    workflows.js         # Workflow persistence placeholder
+  components/
+    WorkflowDesigner/
+      WorkflowDesigner.js
+      WorkflowCanvas.js
+      NodeSidebar.js
+      SimulationPanel.js
+    nodes/
+      StartNode.js
+      TaskNode.js
+      ApprovalNode.js
+      ConditionNode.js
+      AutomatedNode.js
+      EndNode.js
+  domain/
+    simulation.js        # Graph validation + execution logic
+  hooks/
+    useActions.js
+    useWorkflowValidation.js
+  App.js
+  index.js
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## Key Layers
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### **1. Canvas Layer (`WorkflowCanvas.js`)**
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Drag-and-drop node placement
+- Node palette
+- Edge creation
+- Node/edge deletion
+- React Flow integration
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### **2. Node Components (`components/nodes/`)**
 
-### `npm run eject`
+- Each node type has its own UI component
+- Purely visual representation
+- Easily extensible
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### **3. Dynamic Node Form Panel (`NodeSidebar.js`)**
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Supports per-node-type configurations:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- **Start:** metadata (key-value), title
+- **Task:** assignee, due date, description, custom fields
+- **Approval:** approver role, auto-approve threshold
+- **Automated:** action selector + dynamic parameters
+- **End:** summary flag, end message
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### **4. Domain Logic (`simulation.js`)**
 
-## Learn More
+- Workflow structure validation
+- Detects cycles, unreachable nodes, invalid flows
+- Step-by-step workflow simulation
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### **5. Mock APIs (`api/`)**
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- `/actions` – returns actionable automated steps
+- `/simulate` – simulates entire workflow
+- `/workflows` – placeholder for save/load
 
-### Code Splitting
+### **6. Hooks (`hooks/`)**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- `useActions()` – loads actions from mock API
+- `useWorkflowValidation()` – live workflow validation
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+# Workflow Testing / Sandbox Panel
 
-### Making a Progressive Web App
+The sandbox performs full backend-style workflow execution:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### **Features**
 
-### Advanced Configuration
+- Accepts test context (JSON)
+- Serializes full workflow graph
+- Sends to mock `/simulate` API
+- Shows structural validation errors
+- Displays a step-by-step execution log
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### **Example Output**
 
-### Deployment
+```
+1. [START] Starting workflow at "Employee Onboarding Start".
+2. [TASK] Collect Documents assigned to HR Executive.
+3. [APPROVAL] Manager Approval (threshold: 3)
+4. [AUTOMATED] Send Welcome Email using action 'send_email'
+5. [END] Workflow completed. Summary flag: ON
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
+# Completed Features
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### **Canvas**
+
+- Drag, drop, connect, delete
+- Node palette
+- Selection + property editing
+- FitView + minimap
+
+### **Node Types**
+
+- Start
+- Task
+- Approval
+- Automated
+- Condition (basic)
+- End
+
+### **Forms**
+
+- Fully dynamic based on node type
+- Controlled forms
+- Key-value metadata + custom fields
+- Dynamic automated action parameters
+
+### **Validation**
+
+- Start node rules
+- End node requirement
+- No outgoing edges
+- Unreachable nodes
+- Cycle detection
+
+### **Simulation**
+
+- Graph serialization
+- Context-aware execution
+- Mock backend simulation
+- Step-by-step log
+
+---
+
+# What Could Be Added With More Time
+
+- Full condition branch editor (if/else UI)
+- Auto-layout engine (DAGRE/ELK)
+- Real workflow save/load with versioning
+- Better simulation timeline UI
+- TypeScript for full type safety
+- Unit tests for domain logic (validateGraph, runSimulation)
+- Multi-select, grouping, and undo/redo
+
+---
+
+# Summary
+
+This project demonstrates:
+
+- Clean and scalable architecture
+- Strong React Flow usage
+- Dynamic, extensible configuration forms
+- Clear separation of UI, domain, and API layers
+- Workflow validation and mock simulation
+- Thoughtful component and module design
+
+Perfect for evaluating a front-end engineer’s ability to architect complex, interactive systems.
