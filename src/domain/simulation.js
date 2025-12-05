@@ -1,6 +1,36 @@
-// src/domain/simulation.js
+/**
+ * @typedef {"start"|"task"|"approval"|"automated"|"condition"|"end"} WorkflowNodeType
+ */
 
-// Validate graph structure: missing start/end, missing connections, cycles, unreachable nodes
+/**
+ * @typedef {Object} WorkflowNodeConfig
+ * @property {string} [name]
+ * @property {string} [description]
+ * @property {Array<{key: string, value: string}>} [metadata]      // start
+ * @property {string} [assignee]                                   // task
+ * @property {string} [dueDate]                                    // task
+ * @property {Array<{key: string, value: string}>} [customFields]  // task
+ * @property {string} [approverRole]                               // approval
+ * @property {number} [autoApproveThreshold]                       // approval
+ * @property {string} [actionId]                                   // automated
+ * @property {Object.<string,string>} [actionParams]               // automated params
+ * @property {boolean} [summaryFlag]                               // end
+ */
+
+/**
+ * @typedef {Object} WorkflowNodeData
+ * @property {WorkflowNodeType} type
+ * @property {WorkflowNodeConfig} config
+ */
+
+/**
+ * @typedef {Object} WorkflowNode
+ * @property {string} id
+ * @property {WorkflowNodeType} type
+ * @property {{ x: number, y: number }} position
+ * @property {WorkflowNodeData} data
+ */
+
 export function validateGraph(nodes, edges) {
   const errors = [];
 

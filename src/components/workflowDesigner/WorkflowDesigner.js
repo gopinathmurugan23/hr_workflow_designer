@@ -3,6 +3,8 @@ import WorkflowCanvas from "./WorkflowCanvas";
 import NodeSidebar from "./NodeSidebar";
 import SimulationPanel from "./SimulationPanel";
 import { getActions } from "../../api/actions"; // ⬅️ NEW IMPORT
+import { useActions } from "../../hooks/useActions";
+import { useWorkflowValidation } from "../../hooks/useWorkflowValidation";
 // import { saveWorkflow } from "../../api/workflows";
 
 // ---- BASIC VALIDATION ----
@@ -42,18 +44,10 @@ function WorkflowDesigner() {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [validationErrors, setValidationErrors] = useState([]);
 
-  const [actions, setActions] = useState([]); // ⬅️ AVAILABLE AUTOMATED ACTIONS
+  const validationErrors = useWorkflowValidation(nodes, edges);
 
-  useEffect(() => {
-    setValidationErrors(validateWorkflow(nodes, edges));
-  }, [nodes, edges]);
-
-  useEffect(() => {
-    // load mock actions
-    getActions().then(setActions);
-  }, []);
+  const { actions, loading: actionsLoading } = useActions();
 
   const handleNodeChange = (updatedNode) => {
     setNodes((prev) =>
@@ -128,7 +122,8 @@ function WorkflowDesigner() {
           node={selectedNode}
           onChange={handleNodeChange}
           onDelete={handleDeleteNode}
-          actions={actions} // ⬅️ PASS MOCK ACTIONS
+          actions={actions}
+          actionsLoading={actionsLoading}
         />
         <div style={{ borderTop: "1px solid #eee", height: "40%" }}>
           <SimulationPanel nodes={nodes} edges={edges} />
