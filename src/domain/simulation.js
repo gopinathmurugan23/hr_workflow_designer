@@ -1,9 +1,135 @@
+// src/domain/simulation.js
+
+// Validate graph structure: missing start/end, missing connections, cycles, unreachable nodes
+export function validateGraph(nodes, edges) {
+  const errors = [];
+
+  if (!nodes || nodes.length === 0) {
+    errors.push("Workflow is empty.");
+    return errors;
+  }
+
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const outgoing = new Map();
+  const incoming = new Map();
+
+  edges.forEach((e) => {
+    if (!outgoing.has(e.source)) outgoing.set(e.source, []);
+    outgoing.get(e.source).push(e);
+
+    if (!incoming.has(e.target)) incoming.set(e.target, []);
+    incoming.get(e.target).push(e);
+  });
+
+  const getType = (n) => (n.data && n.data.type) || n.type;
+
+  const startNodes = nodes.filter((n) => getType(n) === "start");
+  const endNodes = nodes.filter((n) => getType(n) === "end");
+
+  if (startNodes.length === 0) {
+    errors.push("Workflow must have a Start node.");
+  } else if (startNodes.length > 1) {
+    errors.push("Workflow can only have one Start node.");
+  }
+
+  if (endNodes.length === 0) {
+    errors.push("Workflow should have at least one End node.");
+  }
+
+  // Start node must not have incoming edges
+  if (startNodes.length === 1) {
+    const startId = startNodes[0].id;
+    const incomingToStart = edges.filter((e) => e.target === startId);
+    if (incomingToStart.length > 0) {
+      errors.push("Start node cannot have incoming connections.");
+    }
+  }
+
+  // Non-end nodes must have at least one outgoing edge
+  nodes.forEach((n) => {
+    const type = getType(n);
+    const outs = outgoing.get(n.id) || [];
+    if (type !== "end" && outs.length === 0) {
+      errors.push(`Node "${labelForNode(n)}" has no outgoing connections.`);
+    }
+  });
+
+  // Reachability from Start
+  if (startNodes.length === 1) {
+    const startId = startNodes[0].id;
+    const visited = new Set();
+    const queue = [startId];
+    visited.add(startId);
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      const outs = outgoing.get(currentId) || [];
+      outs.forEach((e) => {
+        if (!visited.has(e.target)) {
+          visited.add(e.target);
+          queue.push(e.target);
+        }
+      });
+    }
+
+    nodes.forEach((n) => {
+      if (!visited.has(n.id)) {
+        errors.push(
+          `Node "${labelForNode(n)}" is unreachable from the Start node.`
+        );
+      }
+    });
+  }
+
+  // Cycle detection
+  const visited = new Set();
+  const inStack = new Set();
+
+  function dfs(nodeId) {
+    visited.add(nodeId);
+    inStack.add(nodeId);
+
+    const outs = outgoing.get(nodeId) || [];
+    for (const e of outs) {
+      const target = e.target;
+      if (!visited.has(target)) {
+        if (dfs(target)) return true;
+      } else if (inStack.has(target)) {
+        // cycle
+        return true;
+      }
+    }
+
+    inStack.delete(nodeId);
+    return false;
+  }
+
+  for (const n of nodes) {
+    if (!visited.has(n.id)) {
+      const hasCycle = dfs(n.id);
+      if (hasCycle) {
+        errors.push("Workflow contains at least one cycle.");
+        break;
+      }
+    }
+  }
+
+  return errors;
+}
+
+function labelForNode(node) {
+  const data = node.data || {};
+  const config = data.config || {};
+  const type = data.type || node.type;
+  return config.name || `${type} (${node.id})`;
+}
+
+// Simulate step-by-step execution
 export function runSimulation(nodes, edges, context) {
   const steps = [];
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const outgoing = new Map();
-
   edges.forEach((e) => {
     if (!outgoing.has(e.source)) outgoing.set(e.source, []);
     outgoing.get(e.source).push(e);
@@ -33,13 +159,29 @@ export function runSimulation(nodes, edges, context) {
       steps.push({
         nodeId: id,
         nodeType,
-        message: `Executing task "${config.name || id}"`,
+        message: `Task: "${config.name || id}" assigned to ${
+          config.assignee || "N/A"
+        } (due: ${config.dueDate || "N/A"})`,
       });
     } else if (nodeType === "approval") {
       steps.push({
         nodeId: id,
         nodeType,
-        message: `Awaiting approval from ${config.approverRole || "N/A"}`,
+        message: `Approval: "${config.name || id}" by ${
+          config.approverRole || "Unknown"
+        } (auto-threshold: ${
+          config.autoApproveThreshold !== undefined
+            ? config.autoApproveThreshold
+            : "none"
+        })`,
+      });
+    } else if (nodeType === "automated") {
+      steps.push({
+        nodeId: id,
+        nodeType,
+        message: `Automated step: "${config.name || id}" using action "${
+          config.actionId || "none"
+        }"`,
       });
     } else if (nodeType === "condition") {
       steps.push({
@@ -51,7 +193,7 @@ export function runSimulation(nodes, edges, context) {
       const condEdges = outgoing.get(id) || [];
       if (condEdges.length === 0) break;
 
-      // For now just follow first branch
+      // For now, we just follow the first edge
       const nextId = condEdges[0].target;
       current = byId.get(nextId);
       continue;
@@ -59,7 +201,9 @@ export function runSimulation(nodes, edges, context) {
       steps.push({
         nodeId: id,
         nodeType,
-        message: `Reached end node "${config.name || id}".`,
+        message: `Reached end: "${config.name || id}". Summary flag: ${
+          config.summaryFlag ? "ON" : "OFF"
+        }`,
       });
       return { steps, completed: true };
     } else if (nodeType === "start") {
