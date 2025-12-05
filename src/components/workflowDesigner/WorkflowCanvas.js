@@ -1,19 +1,20 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   addEdge,
-  useNodesState,
-  useEdgesState,
+  applyNodeChanges,
+  applyEdgeChanges,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
+import StartNode from "../nodes/StartNode";
+import TaskNode from "../nodes/TaskNode";
 import ApprovalNode from "../nodes/ApprovalNode";
 import ConditionNode from "../nodes/ConditionNode";
 import EndNode from "../nodes/EndNode";
-import StartNode from "../nodes/startNode";
-import TaskNode from "../nodes/taskNode";
+import AutomatedNode from "../nodes/AutomatedNode";
 
 const nodeTypes = {
   start: StartNode,
@@ -21,163 +22,218 @@ const nodeTypes = {
   approval: ApprovalNode,
   condition: ConditionNode,
   end: EndNode,
+  automated: AutomatedNode,
+};
+
+const paletteItemStyle = {
+  padding: "4px 8px",
+  border: "1px solid #ccc",
+  borderRadius: 4,
+  fontSize: 12,
+  cursor: "grab",
+  background: "#fafafa",
 };
 
 function WorkflowCanvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
-  const [flowNodes, , onNodesChange] = useNodesState(nodes);
-  const [flowEdges, , onEdgesChange] = useEdgesState(edges);
+  const reactFlowWrapper = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
-  const handleNodesChange = useCallback(
+  const onNodesChange = useCallback(
     (changes) => {
-      onNodesChange(changes);
-      // sync external
-      setNodes((prev) => {
-        return [...flowNodes];
-      });
+      setNodes((nds) => applyNodeChanges(changes, nds));
     },
-    [onNodesChange, setNodes, flowNodes]
+    [setNodes]
   );
 
-  const handleEdgesChange = useCallback(
+  const onEdgesChange = useCallback(
     (changes) => {
-      onEdgesChange(changes);
-      setEdges((prev) => {
-        return [...flowEdges];
-      });
+      setEdges((eds) => applyEdgeChanges(changes, eds));
     },
-    [onEdgesChange, setEdges, flowEdges]
+    [setEdges]
   );
 
   const onConnect = useCallback(
     (connection) => {
-      const newEdges = addEdge(connection, flowEdges);
-      setEdges(newEdges);
+      setEdges((eds) => addEdge(connection, eds));
     },
-    [flowEdges, setEdges]
+    [setEdges]
   );
 
   const handleNodeClick = (_, node) => {
     onSelectNode(node);
   };
 
-  // Quick buttons to add nodes
-  const addTaskNode = () => {
-    const id = `task_${nodes.length + 1}`;
-    const newNode = {
-      id,
-      type: "task",
-      position: { x: 100 + nodes.length * 40, y: 100 },
-      data: {
-        type: "task",
-        config: {
-          name: `Task ${nodes.length + 1}`,
+  // ---- DRAG FROM SIDEBAR ----
+  const onDragStart = (event, nodeType) => {
+    event.dataTransfer.setData("application/reactflow", nodeType);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const onDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  const getDefaultConfig = (type) => {
+    switch (type) {
+      case "start":
+        return { name: "Start", description: "" };
+      case "task":
+        return {
+          name: "Task",
           description: "",
           assigneeRole: "",
           apiEndpoint: "",
-        },
-      },
-    };
-    setNodes((prev) => [...prev, newNode]);
-  };
-
-  const addStartNode = () => {
-    const id = `start_${Date.now()}`;
-    const newNode = {
-      id,
-      type: "start",
-      position: { x: 50, y: 50 },
-      data: {
-        type: "start",
-        config: {
-          name: "Start",
-          description: "",
-        },
-      },
-    };
-    setNodes((prev) => [...prev, newNode]);
-  };
-
-  const addEndNode = () => {
-    const id = `end_${Date.now()}`;
-    const newNode = {
-      id,
-      type: "end",
-      position: { x: 400, y: 200 },
-      data: {
-        type: "end",
-        config: {
-          name: "End",
-          description: "",
-        },
-      },
-    };
-    setNodes((prev) => [...prev, newNode]);
-  };
-
-  const addApprovalNode = () => {
-    const id = `approval_${Date.now()}`;
-    const newNode = {
-      id,
-      type: "approval",
-      position: { x: 250, y: 150 },
-      data: {
-        type: "approval",
-        config: {
+        };
+      case "approval":
+        return {
           name: "Approval",
           description: "",
           approverRole: "",
-        },
-      },
-    };
-    setNodes((prev) => [...prev, newNode]);
-  };
-
-  const addConditionNode = () => {
-    const id = `condition_${Date.now()}`;
-    const newNode = {
-      id,
-      type: "condition",
-      position: { x: 250, y: 250 },
-      data: {
-        type: "condition",
-        config: {
+        };
+      case "condition":
+        return {
           name: "Condition",
           description: "",
           branches: [],
+        };
+      case "automated":
+        return {
+          name: "Automated Step",
+          description: "",
+          actionType: "",
+          apiEndpoint: "",
+        };
+      case "end":
+      default:
+        return { name: "End", description: "" };
+    }
+  };
+
+  const onDrop = (event) => {
+    event.preventDefault();
+
+    const type = event.dataTransfer.getData("application/reactflow");
+    if (!type || !reactFlowInstance) return;
+
+    const bounds = reactFlowWrapper.current.getBoundingClientRect();
+    const position = reactFlowInstance.project({
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+    });
+
+    setNodes((prev) => {
+      const id = `${type}_${Date.now()}`;
+      const newNode = {
+        id,
+        type, // important for React Flow
+        position,
+        data: {
+          type,
+          config: getDefaultConfig(type),
         },
-      },
-    };
-    setNodes((prev) => [...prev, newNode]);
+      };
+      return [...prev, newNode];
+    });
+  };
+
+  // Optional: keep quick-add buttons too (not required, but handy)
+  const addTaskNode = () => {
+    setNodes((prev) => {
+      const id = `task_${prev.length + 1}`;
+      const newNode = {
+        id,
+        type: "task",
+        position: { x: 100 + prev.length * 40, y: 100 },
+        data: {
+          type: "task",
+          config: getDefaultConfig("task"),
+        },
+      };
+      return [...prev, newNode];
+    });
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: 8, borderBottom: "1px solid #eee" }}>
-        <button onClick={addStartNode} style={{ marginRight: 8 }}>
-          + Start
-        </button>
-        <button onClick={addTaskNode} style={{ marginRight: 8 }}>
+    <div
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
+      ref={reactFlowWrapper}
+    >
+      {/* "Sidebar" palette for drag & drop */}
+      <div
+        style={{
+          padding: 8,
+          borderBottom: "1px solid #eee",
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        <span style={{ fontSize: 12, marginRight: 8 }}>Drag node:</span>
+
+        <div
+          style={paletteItemStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "start")}
+        >
+          Start
+        </div>
+        <div
+          style={paletteItemStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "task")}
+        >
+          Task
+        </div>
+        <div
+          style={paletteItemStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "approval")}
+        >
+          Approval
+        </div>
+        <div
+          style={paletteItemStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "automated")}
+        >
+          Automated
+        </div>
+        <div
+          style={paletteItemStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "condition")}
+        >
+          Condition
+        </div>
+        <div
+          style={paletteItemStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "end")}
+        >
+          End
+        </div>
+
+        {/* Optional: quick add button */}
+        <button onClick={addTaskNode} style={{ marginLeft: "auto" }}>
           + Task
         </button>
-        <button onClick={addApprovalNode} style={{ marginRight: 8 }}>
-          + Approval
-        </button>
-        <button onClick={addConditionNode} style={{ marginRight: 8 }}>
-          + Condition
-        </button>
-        <button onClick={addEndNode}>+ End</button>
       </div>
 
       <div style={{ flex: 1 }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={handleNodesChange}
-          onEdgesChange={handleEdgesChange}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           onNodeClick={handleNodeClick}
+          onInit={setReactFlowInstance}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
           fitView
+          deleteKeyCode="Delete" // press Delete key to remove selected node/edge
         >
           <Background />
           <Controls />

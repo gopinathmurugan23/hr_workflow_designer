@@ -1,6 +1,6 @@
 import React from "react";
 
-function NodeSidebar({ node, onChange }) {
+function NodeSidebar({ node, onChange, onDelete }) {
   if (!node) {
     return (
       <div style={{ padding: 16, height: "60%" }}>
@@ -12,6 +12,7 @@ function NodeSidebar({ node, onChange }) {
 
   const data = node.data || {};
   const config = data.config || {};
+  const type = data.type || node.type;
 
   const updateConfig = (partial) => {
     const updated = {
@@ -29,7 +30,7 @@ function NodeSidebar({ node, onChange }) {
 
   return (
     <div style={{ padding: 16, overflowY: "auto", height: "60%" }}>
-      <h3>Edit Node: {data.type ? data.type.toUpperCase() : node.type}</h3>
+      <h3>Edit Node: {type ? type.toUpperCase() : node.type}</h3>
 
       <label style={{ display: "block", marginBottom: 8 }}>
         <div>Name</div>
@@ -50,7 +51,7 @@ function NodeSidebar({ node, onChange }) {
         />
       </label>
 
-      {data.type === "task" && (
+      {type === "task" && (
         <>
           <label style={{ display: "block", marginBottom: 8 }}>
             <div>Assignee Role</div>
@@ -72,7 +73,7 @@ function NodeSidebar({ node, onChange }) {
         </>
       )}
 
-      {data.type === "approval" && (
+      {type === "approval" && (
         <label style={{ display: "block", marginBottom: 8 }}>
           <div>Approver Role</div>
           <input
@@ -83,7 +84,40 @@ function NodeSidebar({ node, onChange }) {
         </label>
       )}
 
-      {/* You can extend for condition branches later */}
+      {type === "automated" && (
+        <>
+          <label style={{ display: "block", marginBottom: 8 }}>
+            <div>Action Type</div>
+            <input
+              style={{ width: "100%" }}
+              value={config.actionType || ""}
+              onChange={(e) => updateConfig({ actionType: e.target.value })}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 8 }}>
+            <div>API Endpoint (mock)</div>
+            <input
+              style={{ width: "100%" }}
+              value={config.apiEndpoint || ""}
+              onChange={(e) => updateConfig({ apiEndpoint: e.target.value })}
+            />
+          </label>
+        </>
+      )}
+
+      <button
+        onClick={() => onDelete(node.id)}
+        style={{
+          marginTop: 12,
+          backgroundColor: "#ffdddd",
+          border: "1px solid #ff8888",
+          padding: "6px 10px",
+          cursor: "pointer",
+        }}
+      >
+        Delete Node
+      </button>
     </div>
   );
 }

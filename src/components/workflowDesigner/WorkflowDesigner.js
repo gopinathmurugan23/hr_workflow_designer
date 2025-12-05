@@ -1,14 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import WorkflowCanvas from "./WorkflowCanvas";
 import NodeSidebar from "./NodeSidebar";
 import SimulationPanel from "./SimulationPanel";
-// optional mock API
+import { getActions } from "../../api/actions"; // ⬅️ NEW IMPORT
 // import { saveWorkflow } from "../../api/workflows";
+
+// ---- BASIC VALIDATION ----
+function validateWorkflow(nodes, edges) {
+  const errors = [];
+
+  const startNodes = nodes.filter(
+    (n) => (n.data && n.data.type) === "start" || n.type === "start"
+  );
+  const endNodes = nodes.filter(
+    (n) => (n.data && n.data.type) === "end" || n.type === "end"
+  );
+
+  if (startNodes.length === 0) {
+    errors.push("Workflow must have a Start node.");
+  }
+  if (startNodes.length > 1) {
+    errors.push("Workflow can only have one Start node.");
+  }
+
+  if (startNodes.length === 1) {
+    const startId = startNodes[0].id;
+    const incomingToStart = edges.filter((e) => e.target === startId);
+    if (incomingToStart.length > 0) {
+      errors.push("Start node cannot have incoming edges.");
+    }
+  }
+
+  if (endNodes.length === 0) {
+    errors.push("Workflow should have at least one End node.");
+  }
+
+  return errors;
+}
 
 function WorkflowDesigner() {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [validationErrors, setValidationErrors] = useState([]);
+
+  const [actions, setActions] = useState([]); // ⬅️ AVAILABLE AUTOMATED ACTIONS
+
+  useEffect(() => {
+    setValidationErrors(validateWorkflow(nodes, edges));
+  }, [nodes, edges]);
+
+  useEffect(() => {
+    // load mock actions
+    getActions().then(setActions);
+  }, []);
 
   const handleNodeChange = (updatedNode) => {
     setNodes((prev) =>
@@ -17,11 +62,15 @@ function WorkflowDesigner() {
     setSelectedNode(updatedNode);
   };
 
-  // Example save button handler if you use the mock API
+  const handleDeleteNode = (nodeId) => {
+    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    setEdges((prev) =>
+      prev.filter((e) => e.source !== nodeId && e.target !== nodeId)
+    );
+    setSelectedNode(null);
+  };
+
   const handleSave = async () => {
-    // const dto = { id: "onboarding", name: "Employee Onboarding", nodes, edges };
-    // await saveWorkflow(dto);
-    // alert("Workflow saved (mock)!");
     console.log("Saving workflow (mock):", { nodes, edges });
     alert("Workflow saved (console only in this demo).");
   };
@@ -41,11 +90,26 @@ function WorkflowDesigner() {
             padding: 8,
             borderBottom: "1px solid #eee",
             display: "flex",
-            justifyContent: "space-between",
+            flexDirection: "column",
+            gap: 4,
           }}
         >
-          <h3 style={{ margin: 0 }}>HR Workflow Designer</h3>
-          <button onClick={handleSave}>Save Workflow (Mock)</button>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <h3 style={{ margin: 0 }}>HR Workflow Designer</h3>
+            <button onClick={handleSave}>Save Workflow (Mock)</button>
+          </div>
+
+          <div style={{ fontSize: 12 }}>
+            {validationErrors.length === 0 ? (
+              <span style={{ color: "green" }}>No validation errors.</span>
+            ) : (
+              <ul style={{ margin: 0, paddingLeft: 16, color: "red" }}>
+                {validationErrors.map((err) => (
+                  <li key={err}>{err}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div style={{ flex: 1 }}>
@@ -60,7 +124,12 @@ function WorkflowDesigner() {
       </div>
 
       <div style={{ flex: 2, display: "flex", flexDirection: "column" }}>
-        <NodeSidebar node={selectedNode} onChange={handleNodeChange} />
+        <NodeSidebar
+          node={selectedNode}
+          onChange={handleNodeChange}
+          onDelete={handleDeleteNode}
+          actions={actions} // ⬅️ PASS MOCK ACTIONS
+        />
         <div style={{ borderTop: "1px solid #eee", height: "40%" }}>
           <SimulationPanel nodes={nodes} edges={edges} />
         </div>
