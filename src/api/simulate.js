@@ -1,7 +1,5 @@
-// src/api/simulate.js
 import { validateGraph, runSimulation } from "../domain/simulation";
 
-// Simulates POST /simulate
 export function simulateWorkflow(payload) {
   const { nodes, edges, context } = payload;
 
@@ -25,6 +23,6 @@ export function simulateWorkflow(payload) {
           completed: result.completed,
         });
       }
-    }, 400); // simulate network + backend time
+    }, 400);
   });
 }

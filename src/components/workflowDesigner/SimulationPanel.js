@@ -85,7 +85,6 @@ function SimulationPanel({ nodes, edges }) {
         </button>
       </div>
 
-      {/* STRUCTURE ERRORS */}
       {errors.length > 0 && (
         <div
           style={{
@@ -107,7 +106,6 @@ function SimulationPanel({ nodes, edges }) {
         </div>
       )}
 
-      {/* EXECUTION LOG */}
       <div
         style={{
           flex: 1,

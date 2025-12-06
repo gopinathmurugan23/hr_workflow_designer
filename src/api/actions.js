@@ -1,5 +1,3 @@
-// src/api/actions.js
-
 const MOCK_ACTIONS = [
   {
     id: "send_email",

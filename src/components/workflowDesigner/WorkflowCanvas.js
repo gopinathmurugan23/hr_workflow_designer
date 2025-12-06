@@ -126,7 +126,7 @@ function WorkflowCanvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
       const id = `${type}_${Date.now()}`;
       const newNode = {
         id,
-        type, // important for React Flow
+        type,
         position,
         data: {
           type,
@@ -137,7 +137,6 @@ function WorkflowCanvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
     });
   };
 
-  // Optional: keep quick-add buttons too (not required, but handy)
   const addTaskNode = () => {
     setNodes((prev) => {
       const id = `task_${prev.length + 1}`;
@@ -159,7 +158,6 @@ function WorkflowCanvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
       ref={reactFlowWrapper}
     >
-      {/* "Sidebar" palette for drag & drop */}
       <div
         style={{
           padding: 8,
@@ -214,7 +212,6 @@ function WorkflowCanvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
           End
         </div>
 
-        {/* Optional: quick add button */}
         <button onClick={addTaskNode} style={{ marginLeft: "auto" }}>
           + Task
         </button>
@@ -233,7 +230,7 @@ function WorkflowCanvas({ nodes, edges, setNodes, setEdges, onSelectNode }) {
           onDrop={onDrop}
           onDragOver={onDragOver}
           fitView
-          deleteKeyCode="Delete" // press Delete key to remove selected node/edge
+          deleteKeyCode="Delete"
         >
           <Background />
           <Controls />

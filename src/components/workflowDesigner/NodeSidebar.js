@@ -14,7 +14,6 @@ function NodeSidebar({ node, onChange, onDelete, actions = [] }) {
   const type = data.type || node.type;
   const config = data.config || {};
 
-  // Ensure default shapes
   const metadata = config.metadata || [];
   const customFields = config.customFields || [];
   const actionParams = config.actionParams || {};
@@ -32,8 +31,6 @@ function NodeSidebar({ node, onChange, onDelete, actions = [] }) {
     };
     onChange(updated);
   };
-
-  // ----- HELPERS FOR KEY-VALUE ARRAYS -----
 
   const updateKeyValueArray = (array, index, field, value, keyName) => {
     const copy = array.map((item, i) =>
@@ -54,8 +51,6 @@ function NodeSidebar({ node, onChange, onDelete, actions = [] }) {
     const copy = current.filter((_, i) => i !== index);
     updateConfig({ [keyName]: copy });
   };
-
-  // ---- AUTOMATED NODE ACTION PARAM HANDLING ----
 
   const selectedAction = actions.find((a) => a.id === config.actionId) || null;
 

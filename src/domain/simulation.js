@@ -154,7 +154,6 @@ function labelForNode(node) {
   return config.name || `${type} (${node.id})`;
 }
 
-// Simulate step-by-step execution
 export function runSimulation(nodes, edges, context) {
   const steps = [];
 

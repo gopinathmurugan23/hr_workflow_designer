@@ -1,44 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import WorkflowCanvas from "./WorkflowCanvas";
 import NodeSidebar from "./NodeSidebar";
 import SimulationPanel from "./SimulationPanel";
-import { getActions } from "../../api/actions"; // ⬅️ NEW IMPORT
 import { useActions } from "../../hooks/useActions";
 import { useWorkflowValidation } from "../../hooks/useWorkflowValidation";
-// import { saveWorkflow } from "../../api/workflows";
-
-// ---- BASIC VALIDATION ----
-function validateWorkflow(nodes, edges) {
-  const errors = [];
-
-  const startNodes = nodes.filter(
-    (n) => (n.data && n.data.type) === "start" || n.type === "start"
-  );
-  const endNodes = nodes.filter(
-    (n) => (n.data && n.data.type) === "end" || n.type === "end"
-  );
-
-  if (startNodes.length === 0) {
-    errors.push("Workflow must have a Start node.");
-  }
-  if (startNodes.length > 1) {
-    errors.push("Workflow can only have one Start node.");
-  }
-
-  if (startNodes.length === 1) {
-    const startId = startNodes[0].id;
-    const incomingToStart = edges.filter((e) => e.target === startId);
-    if (incomingToStart.length > 0) {
-      errors.push("Start node cannot have incoming edges.");
-    }
-  }
-
-  if (endNodes.length === 0) {
-    errors.push("Workflow should have at least one End node.");
-  }
-
-  return errors;
-}
 
 function WorkflowDesigner() {
   const [nodes, setNodes] = useState([]);
