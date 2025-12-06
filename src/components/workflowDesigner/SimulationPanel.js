@@ -2,7 +2,12 @@ import React, { useState } from "react";
 import { simulateWorkflow } from "../../api/simulate";
 
 function SimulationPanel({ nodes, edges }) {
-  const [contextJson, setContextJson] = useState('{"experienceYears": 3}');
+  const [contextJson, setContextJson] = useState(`{
+    "employeeName": "Alice",
+    "employeeEmail": "alice@example.com",
+    "experienceYears": 4,
+    "department": "Engineering"
+  }`);
   const [log, setLog] = useState([]);
   const [errors, setErrors] = useState([]);
   const [completed, setCompleted] = useState(false);
